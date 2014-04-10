@@ -27,14 +27,16 @@
 				renderer.setSize(window.innerWidth, window.innerHeight);
 				document.body.appendChild(renderer.domElement);
 				
-				orb1 = new OrbEllipse(scene,5,1,3,2,0);
-				orb2 = new OrbGravitation("sonne",scene,500000000,0,0,0,0.2,0,0,0);
+				orb1 = new OrbEllipse(scene,5,1,-5,-2,0);
+				orb2 = new OrbGravitation("sonne",scene,500000000,0,0,0,0.3,0,0,0);//sonne
 				orb3 = new OrbOneSun("erde",scene,500,3,2,0,0.1,-0.1,0,0, 0); // ellipse
-				orb4 = new OrbGravitation("erde",scene,500,3,0,0,0.1,-0.1,0,0); // crash
+				orb4 = new OrbOneSun("erde",scene,500,3,0,0,0.1,-0.1,0,0, 0); // crash
+				orb5 = new OrbGravitation("erde",scene,500,0,3,0,0.1,-0.12,-0.05,0); // kreis
 				this.orbs = new Array();
 				this.orbs[0] = orb2;
 				this.orbs[1] = orb3;
-				this.orbs[2] = orb3;
+				this.orbs[2] = orb4;
+				this.orbs[3] = orb5;
 				
 				var render = function () {
 					requestAnimationFrame(render);
@@ -168,7 +170,7 @@
 					
 					var lineGeometry = new THREE.Geometry();
 					lineGeometry.vertices.push( new THREE.Vector3( oldPosition.x, oldPosition.y, oldPosition.z ) );
-					lineGeometry.vertices.push( new THREE.Vector3( this.sphere.position.x, this.sphere.position.y, 0 ) );
+					lineGeometry.vertices.push( new THREE.Vector3( this.sphere.position.x, this.sphere.position.y, this.sphere.position.z ) );
 					this.lines[this.lineIndex] = new THREE.Line( lineGeometry, this.lineMaterial );
 					scene.add( this.lines[this.lineIndex]  );
 					this.lineIndex = (this.lineIndex + 1) % 500;
