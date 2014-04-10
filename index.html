@@ -1,113 +1,225 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
-		<title>My first Three.js app</title>
+		<title>Pull of the Planets</title>
+		<meta charset="utf-8">
 		<style>canvas { width: 100%; height: 100% }</style>
 	</head>
 	<body>
+		<div id="container"></div>
 		<script src="js/three.min.js"></script>
+		<script src="js/TrackballControls.js"></script>
+		<script src="js/Detector.js"></script>
 		<script>
-			var scene = new THREE.Scene();
-			var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
-			camera.position.z = 5;
-			var renderer = new THREE.WebGLRenderer();
-			renderer.setSize(window.innerWidth, window.innerHeight);
-			document.body.appendChild(renderer.domElement);
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			var container;
+			var camera, controls, scene, renderer, cross;
+			var orb1, orb2, orb3, orb4;
 			
-			//var orb1 = new OrbEllipse(scene,5,1,3,2,0);
-			var orb2 = new OrbGravitation("sonne",scene,500000000,0,0,0,2,0,0,0);
-			var orb3 = new OrbGravitation("erde",scene,500,3,2,0,1,-0.1,0,0);
-			this.orbs = new Array();
-			this.orbs[0] = orb2;
-			this.orbs[1] = orb3;
-			var render = function () {
-				requestAnimationFrame(render);
-				//orb1.moveForward();
-				orb2.moveForward(this.orbs);
-				orb3.moveForward(this.orbs);
-				renderer.render(scene, camera);
-			};
+			init();
+			//animate();
 
-			render();
+			function init() {
+				var scene = new THREE.Scene();
+				var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+				camera.position.z = 10;
+				var renderer = new THREE.WebGLRenderer();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				document.body.appendChild(renderer.domElement);
+				
+				orb1 = new OrbEllipse(scene,5,1,3,2,0);
+				orb2 = new OrbGravitation("sonne",scene,500000000,0,0,0,0.2,0,0,0);
+				orb3 = new OrbOneSun("erde",scene,500,3,2,0,0.1,-0.1,0,0, 0); // ellipse
+				orb4 = new OrbGravitation("erde",scene,500,3,0,0,0.1,-0.1,0,0); // crash
+				this.orbs = new Array();
+				this.orbs[0] = orb2;
+				this.orbs[1] = orb3;
+				this.orbs[2] = orb3;
+				
+				var render = function () {
+					requestAnimationFrame(render);
+					orb1.moveForward();
+					for(var i = 0;i<orbs.length;i++) {
+						orbs[i].moveForward(this.orbs);
+					}
+					renderer.render(scene, camera);
+				};
+				render();
+			}
 			
+			
+			function init2() {
+				camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+				camera.position.z = 10;
+				controls = new THREE.TrackballControls( camera );
+				controls.rotateSpeed = 1.0;
+				controls.zoomSpeed = 1.2;
+				controls.panSpeed = 0.8;
+				controls.noZoom = false;
+				controls.noPan = false;
+				controls.staticMoving = true;
+				controls.dynamicDampingFactor = 0.3;
+				controls.keys = [ 65, 83, 68 ];
+				controls.addEventListener( 'change', render );
+
+				scene = new THREE.Scene();
+				orb1 = new OrbEllipse(scene,5,1,3,2,0);
+				orb2 = new OrbGravitation("sonne",scene,500000000,0,0,0,0.2,0,0,0);
+				orb3 = new OrbOneSun("erde",scene,500,3,2,0,0.1,-0.1,0,0, 0); // ellipse
+				orb4 = new OrbGravitation("erde",scene,500,3,0,0,0.1,-0.1,0,0); // crash
+				this.orbs = new Array();
+				this.orbs[0] = orb2;
+				this.orbs[1] = orb3;
+				this.orbs[2] = orb3;
+			
+				// renderer
+				renderer = new THREE.WebGLRenderer( { antialias: false } );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container = document.getElementById( 'container' );
+				container.appendChild( renderer.domElement );
+				//window.addEventListener( 'resize', onWindowResize, false );
+			}
+			
+			
+			/*function render() {
+				requestAnimationFrame(render);
+				orb1.moveForward();
+				for(var i = 0;i<orbs.length;i++) {
+					orbs[i].moveForward(this.orbs);
+				}
+				renderer.render( scene, camera );
+			}*/
+
+			/*function animate() {
+				requestAnimationFrame( animate );
+				controls.update();
+			}*/
+
 			function OrbGravitation (id, scene, mass, x, y, z, radius, vx, vy, vz) {
-				var sphereGeometry = new THREE.SphereGeometry(0.1,32,32);
+				console.debug("adding");
+				var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
 				var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
 				this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 				scene.add(this.sphere);
 				
 				this.id=id;
 				this.mass = mass;
-				this.position = [x,y,z];
 				this.radius = radius;
-				this.v = [vx,vy,vz];
-				
-				this.sphere.position.x = x;
-				this.sphere.position.y = y;
-				this.sphere.position.z = z;
+				this.v = {x:vx,y:vy,z:vz};
+				this.sphere.position = {x:x,y:y,z:z};
 				
 				this.lineMaterial = new THREE.LineBasicMaterial({color: 0x0000ff});
 				this.lines = new Array();
 				this.lineIndex = 0;
 			
+			
 				OrbGravitation.prototype.moveForward = function(orbs) {
-					var gConst = 6.673e-11; //Gravitationskonstante
-					var t = 0.4; //time aka. speed
-					var oldPosition = [this.position.x,this.position.y,this.position.z];
+					if (this.deleted){ // TODO improve
+						return;
+					}
 					
-					//Berechnete Werte
-					var distance; //Abstand Planet Sonne (Mittelpunkt) 
-					var _g; //Fallbeschleunigung komplett
-					var gPrev = new Array(); //Fallbeschleunigung als Vektor der vorigen Planeten
-					gPrev[0] = gPrev[1] = gPrev[2] = 0; 
-					var g = new Array(); //Fallbeschleunigung (als Vektor (x,y,z)) auf Komponenten zerlegt 
-					g[0] = g[1] = g[2] = 0; 
+					var gConst = 6.673e-11; // gravitational constant
+					var t = 0.4; // time aka. speed
+					var oldPosition = {x:this.sphere.position.x, y:this.sphere.position.y, z:this.sphere.position.z}; // only necessary for drawing lines
+					var distance, _g; // intermediate data
+					var g = {x:0, y:0, z:0}; // gravity
 					
 					for (var i=0;i<orbs.length;i++){
-						console.debug("Calculating next position for " + this.id);
 						var orb = orbs[i];
-						if(this.id != orb.id){ // && orb.isGravitationOrb
+						if(this.id != orb.id && !orb.deleted){ // && orb.isGravitationOrb
 							var masseN = orb.mass;
-							var posN = orb.position;
-							console.debug("position=" + this.position[0] +", "+ this.position[1] +", " + this.position[2]);
-							distance = Math.sqrt(Math.pow(this.position[0] - posN[0], 2) + Math.pow(this.position[1] - posN[1], 2) + Math.pow(this.position[2] - posN[2], 2));
+							var posN = orb.sphere.position;
+							distance = Math.sqrt(Math.pow(this.sphere.position.x - posN.x, 2) + Math.pow(this.sphere.position.y - posN.y, 2) + Math.pow(this.sphere.position.z - posN.z, 2));
 							//console.debug("distance=" +distance);
-							//Zusammenstoß
-							/* if (distance <= (this.radius + orb.radius)) {//Zusammenstoß, Masse wird auf den schwerern Körper übertragen, anderer wird gelöscht
-								console.debug("Crash!!");
+							if (distance <= (this.radius + orb.radius)) {//crash of two orbs. Mass will be assigned to the heavier one.
+								console.debug("Crash of " + this.id + " and " + orb.id + ".");
+								alert("Crash of " + this.id + " and " + orb.id + ".");
 								if (this.mass <= orb.mass) {
+									console.debug("Deleting " + this.id + ".");
 									orb.mass = orb.mass + this.mass;
 									this.mass = 0;
-									//this.setDelete();
+									this.deleted = true;
 									return;
 								}
 								else {
+									console.debug("Deleting " + orb.id + ".");
 									this.mass = orb.mass + this.mass;
-									orb = mass = 0;
-									//orb.setDelete();
+									orb.mass = 0;
+									orb.deleted = true;
 								}
-							} */
-							_g = -gConst * masseN / (distance * distance);
-							// console.debug("_g=" + _g);
-							for (var i = 0; i < 3; i++) { // g berechnen 
-								g[i] = gPrev[i] + _g * (this.position[i] - posN[i]) / distance;
-								gPrev[i] = g[i];
-								// g (inkl. Anziehungskräfte vorheriger Planeten (<n)) 
-
 							}
+							_g = -gConst * masseN / (distance * distance);
+							// console.debug(this.id + " _g=" + _g);
+							g.x = g.x + _g * (this.sphere.position.x - posN.x) / distance;
+							g.y = g.y + _g * (this.sphere.position.y - posN.y) / distance;
+							g.z = g.z + _g * (this.sphere.position.z - posN.z) / distance;
 						}
 					}
 					
-					//console.debug("g=[" + g[0] +", "+ g[1] +", " + g[2]+"]");
-					for (var i = 0; i < 3; i++) { // v und neue position berechnen 
-						this.v[i] = this.v[i] + g[i] * t; // v 
-						this.position[i] = this.position[i] + this.v[i] * t + 0,5 * g[i] * t * t; //position 
-					}
-					console.debug("v=[" + this.v[0] +", "+ this.v[1] +", " + this.v[2]+"]");
-					console.debug("New Position:" + this.sphere.position.x +", "+ this.sphere.position.y +", " + this.sphere.position.z);
+					//console.debug(this.id + " g=[" + g[0] +", "+ g[1] +", " + g[2]+"]");
+					this.v.x = this.v.x + g.x * t;
+					this.sphere.position.x = this.sphere.position.x + this.v.x * t + 0,5 * g.x * t * t;  
+					this.v.y = this.v.y + g.y * t;
+					this.sphere.position.y = this.sphere.position.y + this.v.y * t + 0,5 * g.y * t * t;  
+					this.v.z = this.v.z + g.z * t; 
+					this.sphere.position.z = this.sphere.position.z + this.v.z * t + 0,5 * g.z * t * t; 	
+					//console.debug(this.id + " v=[" + this.v.x +", "+ this.v.y +", " + this.v.z+"]");
+					//console.debug(this.id + " p=[" + this.sphere.position.x +", "+ this.sphere.position.y +", " + this.sphere.position.z + "] v=[" + this.v.x +", "+ this.v.y +", " + this.v.z+"]");
 					
-					this.sphere.position.x = this.position[0];
-					this.sphere.position.y = this.position[1];
-					this.sphere.position.z = this.position[2];
+					var lineGeometry = new THREE.Geometry();
+					lineGeometry.vertices.push( new THREE.Vector3( oldPosition.x, oldPosition.y, oldPosition.z ) );
+					lineGeometry.vertices.push( new THREE.Vector3( this.sphere.position.x, this.sphere.position.y, 0 ) );
+					this.lines[this.lineIndex] = new THREE.Line( lineGeometry, this.lineMaterial );
+					scene.add( this.lines[this.lineIndex]  );
+					this.lineIndex = (this.lineIndex + 1) % 500;
+					scene.remove(this.lines[this.lineIndex]);
+				};
+			}
+			
+			function OrbOneSun (id, scene, mass, x, y, z, radius, vx, vy, vz, centerIndex) {
+				var sphereGeometry = new THREE.SphereGeometry(radius,32,32);
+				var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
+				this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+				scene.add(this.sphere);
+				
+				this.id=id;
+				this.mass = mass;
+				this.radius = radius;
+				this.v = {x:vx,y:vy,z:vz};
+				this.sphere.position = {x:x,y:y,z:z};
+				this.centerIndex = centerIndex; // TODO
+				
+				this.lineMaterial = new THREE.LineBasicMaterial({color: 0x0000ff});
+				this.lines = new Array();
+				this.lineIndex = 0;
+			
+			
+				OrbOneSun.prototype.moveForward = function(orbs) {
+					if (this.deleted){ // TODO improve
+						return;
+					}
+					
+					var gConst = 6.673e-11; // gravitational constant
+					var t = 0.4; // time aka. speed
+					var oldPosition = {x:this.sphere.position.x, y:this.sphere.position.y, z:this.sphere.position.z}; // only necessary for drawing lines
+					var distance, _g; // intermediate data
+					var g = {x:0, y:0, z:0}; // gravity
+					var massN = orbs[this.centerIndex].mass;
+					var posN = orbs[this.centerIndex].sphere.position;
+					
+					distance = Math.sqrt(Math.pow(this.sphere.position.x - posN.x, 2) + Math.pow(this.sphere.position.y - posN.y, 2) + Math.pow(this.sphere.position.z - posN.z, 2));
+					_g = -gConst * massN / (distance * distance);		
+					g.x =_g * (this.sphere.position.x - posN.x) / distance;
+					g.y = _g * (this.sphere.position.y - posN.y) / distance;
+					g.z = _g * (this.sphere.position.z - posN.z) / distance;
+					
+					this.v.x = this.v.x + g.x * t;
+					this.sphere.position.x = this.sphere.position.x + this.v.x * t + 0,5 * g.x * t * t;  
+					this.v.y = this.v.y + g.y * t;
+					this.sphere.position.y = this.sphere.position.y + this.v.y * t + 0,5 * g.y * t * t;  
+					this.v.z = this.v.z + g.z * t; 
+					this.sphere.position.z = this.sphere.position.z + this.v.z * t + 0,5 * g.z * t * t; 	
+					//console.debug(this.id + " p=[" + this.sphere.position.x +", "+ this.sphere.position.y +", " + this.sphere.position.z + "] v=[" + this.v.x +", "+ this.v.y +", " + this.v.z+"]");
 					
 					var lineGeometry = new THREE.Geometry();
 					lineGeometry.vertices.push( new THREE.Vector3( oldPosition.x, oldPosition.y, oldPosition.z ) );
@@ -124,10 +236,11 @@
 				var sphereMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
 				this.sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
 				scene.add(this.sphere);
+				
 				this.majorAxis = majorAxis;
 				this.minorAxis = minorAxis;
 				this.angle = 0;
-				this.center = [x,y,z]; 
+				this.center = {x:x, y:y, z:z}; 
 				
 				this.lineMaterial = new THREE.LineBasicMaterial({color: 0x0000ff});
 				this.lines = new Array();
@@ -138,8 +251,8 @@
 					var y = this.sphere.position.y;
 					var z = this.sphere.position.z;
 					this.angle += (Math.PI / 360); //move one degree each iteration
-					this.sphere.position.x = this.majorAxis * Math.cos(this.angle) - this.center[0] ;
-					this.sphere.position.y = this.minorAxis * Math.sin(this.angle) - this.center[1] ;
+					this.sphere.position.x = this.majorAxis * Math.cos(this.angle) - this.center.x ;
+					this.sphere.position.y = this.minorAxis * Math.sin(this.angle) - this.center.y ;
 
 					var lineGeometry = new THREE.Geometry();
 					lineGeometry.vertices.push( new THREE.Vector3( x, y, z));
